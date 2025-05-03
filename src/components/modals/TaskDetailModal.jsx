@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { FiX, FiCalendar, FiFlag, FiTag, FiImage, FiTrash2, FiEdit2, FiSave, FiChevronLeft } from 'react-icons/fi';
+import { useState, useEffect, useRef } from 'react';
+import { FiX, FiCalendar, FiFlag, FiTag, FiTrash2, FiEdit2, FiSave, FiChevronLeft, FiFile, FiMic, FiMessageSquare, FiPaperclip } from 'react-icons/fi';
 import { PRIORITIES, useTaskContext } from '../../context/TaskContext';
 import TaskLabel from '../ui/TaskLabel';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 
 function TaskDetailModal({ isOpen, onClose, task }) {
     const { updateTask, deleteTask } = useTaskContext();
@@ -12,12 +12,16 @@ function TaskDetailModal({ isOpen, onClose, task }) {
         dueDate: '',
         priority: PRIORITIES.MEDIUM,
         labels: [],
-        images: []
+        comments: []
     });
     const [newLabel, setNewLabel] = useState('');
+    const [newComment, setNewComment] = useState('');
+    const [commentAttachments, setCommentAttachments] = useState([]);
     const [isAddingLabel, setIsAddingLabel] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const commentFileInputRef = useRef(null);
+    const commentsEndRef = useRef(null);
 
     useEffect(() => {
         if (task) {
@@ -27,13 +31,20 @@ function TaskDetailModal({ isOpen, onClose, task }) {
                 dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
                 priority: task.priority || PRIORITIES.MEDIUM,
                 labels: task.labels || [],
-                images: task.images || []
+                comments: task.comments || []
             });
             // Reset edit mode when task changes
             setIsEditMode(false);
             setIsDeleting(false);
         }
     }, [task]);
+
+    // Scroll to bottom of comments when new comment is added
+    useEffect(() => {
+        if (commentsEndRef.current) {
+            commentsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [formData.comments]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -65,25 +76,7 @@ function TaskDetailModal({ isOpen, onClose, task }) {
         }
     };
 
-    const handleImageUpload = (e) => {
-        const files = Array.from(e.target.files);
-        const newImages = files.map(file => ({
-            id: Math.random().toString(36).substr(2, 9),
-            url: URL.createObjectURL(file),
-            name: file.name
-        }));
-        setFormData(prev => ({
-            ...prev,
-            images: [...prev.images, ...newImages]
-        }));
-    };
 
-    const removeImage = (imageId) => {
-        setFormData(prev => ({
-            ...prev,
-            images: prev.images.filter(img => img.id !== imageId)
-        }));
-    };
 
     const addLabel = (label) => {
         if (!formData.labels.includes(label) && label.trim()) {
@@ -107,22 +100,93 @@ function TaskDetailModal({ isOpen, onClose, task }) {
         setIsEditMode(!isEditMode);
     };
 
+    const handleCommentAttachmentUpload = (e) => {
+        const files = Array.from(e.target.files);
+        const newAttachments = files.map(file => {
+            const isImage = file.type.startsWith('image/');
+            const isAudio = file.type.startsWith('audio/');
+
+            return {
+                id: Math.random().toString(36).substr(2, 9),
+                url: URL.createObjectURL(file),
+                name: file.name,
+                type: file.type,
+                fileType: isImage ? 'image' : isAudio ? 'audio' : 'file',
+                createdAt: new Date().toISOString()
+            };
+        });
+
+        setCommentAttachments(prev => [...prev, ...newAttachments]);
+    };
+
+    const removeCommentAttachment = (attachmentId) => {
+        setCommentAttachments(prev => prev.filter(attachment => attachment.id !== attachmentId));
+    };
+
+    const addComment = async (e) => {
+        e.preventDefault();
+        if (newComment.trim() || commentAttachments.length > 0) {
+            const comment = {
+                id: Math.random().toString(36).substr(2, 9),
+                text: newComment,
+                createdAt: new Date().toISOString(),
+                attachments: commentAttachments
+            };
+
+            // Update local state
+            const updatedComments = [...formData.comments, comment];
+            setFormData(prev => ({
+                ...prev,
+                comments: updatedComments
+            }));
+
+            // Persist data to database
+            try {
+                await updateTask(task.id, { comments: updatedComments });
+                setNewComment('');
+                setCommentAttachments([]);
+            } catch (error) {
+                console.error('Error saving comment:', error);
+            }
+        }
+    };
+
+    const removeComment = async (commentId) => {
+        const updatedComments = formData.comments.filter(comment => comment.id !== commentId);
+        setFormData(prev => ({
+            ...prev,
+            comments: updatedComments
+        }));
+
+        // Persist data to database
+        try {
+            await updateTask(task.id, { comments: updatedComments });
+        } catch (error) {
+            console.error('Error removing comment:', error);
+        }
+    };
+
+    // Make sure changes are saved when closing modal
+    const handleClose = async () => {
+        // If there are unsaved changes and we're not in edit mode, save them
+        if (!isEditMode) {
+            try {
+                // This ensures any changes are persisted
+                await updateTask(task.id, formData);
+            } catch (error) {
+                console.error('Error saving task changes:', error);
+            }
+        }
+        // Then close the modal
+        onClose();
+    };
+
     if (!isOpen) return null;
 
     return (
         <AnimatePresence>
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4"
-            >
-                <motion.div
-                    initial={{ scale: 0.95, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.95, opacity: 0 }}
-                    className="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto"
-                >
+            <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
                     <div className="flex justify-between items-center p-4 border-b sticky top-0 bg-white z-10">
                         <div className="flex items-center">
                             {isEditMode && (
@@ -158,7 +222,7 @@ function TaskDetailModal({ isOpen, onClose, task }) {
                                 </button>
                             )}
                             <button
-                                onClick={onClose}
+                                onClick={handleClose}
                                 className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100 transition-colors"
                                 title="Close"
                             >
@@ -335,55 +399,172 @@ function TaskDetailModal({ isOpen, onClose, task }) {
                             )}
                         </div>
 
-                        {isEditMode && (
-                            <div className="mb-4">
-                                <label htmlFor="images" className="block text-sm font-medium text-gray-700 mb-1">
-                                    <div className="flex items-center">
-                                        <FiImage className="h-4 w-4 mr-1" />
-                                        <span>Images</span>
-                                    </div>
-                                </label>
-                                <input
-                                    type="file"
-                                    id="images"
-                                    multiple
-                                    accept="image/*"
-                                    onChange={handleImageUpload}
-                                    className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                />
-                            </div>
-                        )}
+                        {/* Comments Section */}
+                        <div className="mt-6 pt-4 border-t">
+                            <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
+                                <FiMessageSquare className="h-4 w-4 mr-1" />
+                                Comments & Attachments
+                            </h3>
 
-                        {formData.images && formData.images.length > 0 && (
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    <div className="flex items-center">
-                                        <FiImage className="h-4 w-4 mr-1" />
-                                        <span>Attached Images</span>
+                            <div className="mb-4 max-h-64 overflow-y-auto">
+                                {formData.comments && formData.comments.length > 0 ? (
+                                    <div className="flex flex-col gap-3">
+                                        {formData.comments.map(comment => (
+                                            <div key={comment.id} className="bg-gray-50 p-3 rounded-md relative">
+                                                {comment.text && (
+                                                    <p className="text-sm text-gray-800 whitespace-pre-wrap mb-2">{comment.text}</p>
+                                                )}
+
+                                                {/* Comment Attachments */}
+                                                {comment.attachments && comment.attachments.length > 0 && (
+                                                    <div className="flex flex-wrap gap-2 my-2">
+                                                        {comment.attachments.map(attachment => (
+                                                            <div key={attachment.id} className="bg-white rounded-md border p-2 max-w-full">
+                                                                {attachment.fileType === 'image' ? (
+                                                                    <div className="mb-1">
+                                                                        <img
+                                                                            src={attachment.url}
+                                                                            alt={attachment.name}
+                                                                            className="max-h-40 max-w-full object-contain rounded"
+                                                                        />
+                                                                    </div>
+                                                                ) : attachment.fileType === 'audio' ? (
+                                                                    <div className="mb-1">
+                                                                        <p className="text-xs text-gray-500 mb-1">{attachment.name}</p>
+                                                                        <audio controls className="w-full h-8">
+                                                                            <source src={attachment.url} type={attachment.type} />
+                                                                            Your browser does not support the audio element.
+                                                                        </audio>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="flex items-center">
+                                                                        <FiFile className="h-4 w-4 text-gray-500 mr-2" />
+                                                                        <a
+                                                                            href={attachment.url}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="text-sm text-blue-600 hover:underline"
+                                                                        >
+                                                                            {attachment.name}
+                                                                        </a>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                <div className="flex justify-between items-center">
+                                                    <div className="text-xs text-gray-500">
+                                                        {new Date(comment.createdAt).toLocaleString()}
+                                                    </div>
+                                                    {isEditMode && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeComment(comment.id)}
+                                                            className="text-red-500 hover:text-red-700"
+                                                        >
+                                                            <FiX className="h-3 w-3" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <div ref={commentsEndRef} />
                                     </div>
-                                </label>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                    {formData.images.map(image => (
-                                        <div key={image.id} className="relative rounded-md overflow-hidden">
-                                            <img
-                                                src={image.url}
-                                                alt={image.name}
-                                                className="w-full h-24 object-cover"
-                                            />
-                                            {isEditMode && (
+                                ) : (
+                                    <p className="text-sm text-gray-400 italic">No comments yet</p>
+                                )}
+                            </div>
+
+                            {/* Add Comment Form */}
+                            <div className="flex flex-col gap-3">
+                                <textarea
+                                    placeholder="Add a comment..."
+                                    value={newComment}
+                                    onChange={e => setNewComment(e.target.value)}
+                                    onKeyDown={e => {
+                                        if (e.key === 'Enter' && !e.shiftKey && (newComment.trim() || commentAttachments.length > 0)) {
+                                            e.preventDefault();
+                                            addComment(e);
+                                        }
+                                    }}
+                                    className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 min-h-[60px] resize-none"
+                                />
+
+                                {/* Comment Attachments Preview */}
+                                {commentAttachments.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 py-2">
+                                        {commentAttachments.map(attachment => (
+                                            <div key={attachment.id} className="relative bg-gray-50 rounded-md p-2 max-w-[150px]">
+                                                {attachment.fileType === 'image' ? (
+                                                    <div className="relative w-full h-20">
+                                                        <img
+                                                            src={attachment.url}
+                                                            alt={attachment.name}
+                                                            className="h-full w-full object-cover rounded"
+                                                        />
+                                                    </div>
+                                                ) : attachment.fileType === 'audio' ? (
+                                                    <div className="flex items-center">
+                                                        <FiMic className="h-4 w-4 text-gray-500 mr-2" />
+                                                        <span className="text-xs text-gray-700 truncate max-w-[100px]">
+                                                            {attachment.name}
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center">
+                                                        <FiFile className="h-4 w-4 text-gray-500 mr-2" />
+                                                        <span className="text-xs text-gray-700 truncate max-w-[100px]">
+                                                            {attachment.name}
+                                                        </span>
+                                                    </div>
+                                                )}
                                                 <button
                                                     type="button"
-                                                    onClick={() => removeImage(image.id)}
-                                                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                                                    onClick={() => removeCommentAttachment(attachment.id)}
+                                                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
                                                 >
                                                     <FiX className="h-3 w-3" />
                                                 </button>
-                                            )}
-                                        </div>
-                                    ))}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <div className="flex justify-between">
+                                    <div className="flex gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => commentFileInputRef.current?.click()}
+                                            className="text-gray-500 hover:text-gray-700 p-1 rounded hover:bg-gray-100"
+                                            title="Attach files"
+                                        >
+                                            <FiPaperclip className="h-5 w-5" />
+                                        </button>
+                                        <input
+                                            type="file"
+                                            multiple
+                                            className="hidden"
+                                            ref={commentFileInputRef}
+                                            onChange={handleCommentAttachmentUpload}
+                                        />
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={addComment}
+                                        disabled={!newComment.trim() && commentAttachments.length === 0}
+                                        className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed"
+                                    >
+                                        <span className="flex items-center">
+                                            <FiMessageSquare className="h-4 w-4 mr-1" />
+                                            Comment
+                                        </span>
+                                    </button>
                                 </div>
                             </div>
-                        )}
+                        </div>
 
                         <div className="flex justify-between items-center pt-4 border-t mt-6">
                             {isEditMode ? (
@@ -431,8 +612,8 @@ function TaskDetailModal({ isOpen, onClose, task }) {
                             </div>
                         </div>
                     </form>
-                </motion.div>
-            </motion.div>
+                </div>
+            </div>
         </AnimatePresence>
     );
 }

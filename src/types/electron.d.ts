@@ -14,6 +14,26 @@ interface Task {
   priority?: string;
   dueDate?: string;
   createdAt: string;
+  labels?: string[];
+  images?: TaskAttachment[];
+  comments?: TaskComment[];
+  files?: TaskAttachment[];
+  audioRecordings?: TaskAttachment[];
+}
+
+interface TaskComment {
+  id: string;
+  text: string;
+  createdAt: string;
+  createdBy?: string;
+}
+
+interface TaskAttachment {
+  id: string;
+  url: string;
+  name: string;
+  type?: string;
+  createdAt?: string;
 }
 
 interface Window {

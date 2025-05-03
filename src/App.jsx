@@ -15,6 +15,7 @@ import FilterDropdown from './components/ui/FilterDropdown'
 import ViewSwitcher from './components/ui/ViewSwitcher'
 import { FiPlus, FiTrash2, FiSettings } from 'react-icons/fi'
 import { AnimatePresence } from 'framer-motion'
+import ReportPage from './components/ReportPage'
 
 function TaskManager() {
   const {
@@ -43,6 +44,7 @@ function TaskManager() {
   const [selectedPriority, setSelectedPriority] = useState(null);
   const [isTrashOpen, setIsTrashOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -118,6 +120,14 @@ function TaskManager() {
     setIsSettingsOpen(false)
   }
 
+  const handleOpenReport = () => {
+    setIsReportOpen(true)
+  }
+
+  const handleCloseReport = () => {
+    setIsReportOpen(false)
+  }
+
   // Handle search
   const handleSearch = (term) => {
     setSearchTerm(term)
@@ -157,9 +167,17 @@ function TaskManager() {
     return searchTerm || selectedLabels.length > 0 || timeFilter !== 'all' || selectedPriority;
   }
 
+  const handleClearFilters = () => {
+    clearFilters();
+    setSelectedPriority(null);
+  }
+
   return (
     <div className="flex flex-col h-screen bg-gray-50">
-      <Header onAddTask={handleAddTask} />
+      <Header
+        onAddTask={handleAddTask}
+        onOpenReport={handleOpenReport}
+      />
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar - Only visible on larger screens */}
@@ -236,7 +254,7 @@ function TaskManager() {
                 <div className="mt-2 flex items-center text-xs text-gray-500">
                   <span>Filters active</span>
                   <button
-                    onClick={clearFilters}
+                    onClick={handleClearFilters}
                     className="ml-2 underline text-indigo-600 hover:text-indigo-800"
                   >
                     Clear all
@@ -315,6 +333,11 @@ function TaskManager() {
       {/* Settings view modal */}
       <AnimatePresence>
         {isSettingsOpen && <SettingsView onClose={handleCloseSettings} />}
+      </AnimatePresence>
+
+      {/* Report view modal */}
+      <AnimatePresence>
+        {isReportOpen && <ReportPage onClose={handleCloseReport} />}
       </AnimatePresence>
 
       <Toast
