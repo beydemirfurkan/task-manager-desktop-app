@@ -13,10 +13,10 @@ if (!fs.existsSync(distElectronDir)) {
     fs.mkdirSync(distElectronDir, { recursive: true });
 }
 
-// Compile main.js and preload.js using esbuild
+// Compile main.cjs and preload.cjs using esbuild
 const buildCommands = [
-    `esbuild electron/main.js --bundle --platform=node --outfile=dist-electron/main.js --format=esm`,
-    `esbuild electron/preload.js --bundle --platform=node --outfile=dist-electron/preload.js --format=esm`,
+    `esbuild electron/main.cjs --bundle --platform=node --outfile=dist-electron/main.cjs --format=cjs --external:electron --external:electron-store`,
+    `esbuild electron/preload.cjs --bundle --platform=node --outfile=dist-electron/preload.cjs --format=cjs --external:electron`,
 ];
 
 buildCommands.forEach(command => {
@@ -31,4 +31,4 @@ buildCommands.forEach(command => {
         }
         console.log(`Build output: ${stdout}`);
     });
-}); 
+});

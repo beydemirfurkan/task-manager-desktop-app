@@ -1,12 +1,32 @@
-# React + Vite
+# Etsy Task Manager
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Etsy satıcıları için geliştirilmiş bir görev yönetim uygulaması. Bu uygulama ile Etsy mağazanız için görevlerinizi organize edebilir, takip edebilir ve verimli bir şekilde yönetebilirsiniz.
 
-Currently, two official plugins are available:
+## Özellikler
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Görevleri sürükle-bırak ile düzenleme
+- Özel durum sütunları oluşturma
+- Görev notları ve detaylı açıklamalar ekleme
+- Silinen görevleri geri getirme
+- Otomatik güncelleme sistemi
 
-## Expanding the ESLint configuration
+## Kurulum
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+1. Sisteminize uygun kurulum dosyasını indirin:
+   - Windows: `.exe` kurulum dosyası
+   - macOS: `.dmg` kurulum dosyası
+   - Linux: `.AppImage` veya `.deb` paketi
+
+2. Kurulum dosyasını çalıştırın ve ekrandaki talimatları izleyin.
+
+## Güncellemeler
+
+Uygulama, yeni sürümler yayınlandığında otomatik olarak güncellenecektir. Güncelleme mevcut olduğunda, uygulama sizi bilgilendirecek ve güncellemeyi kurmanızı isteyecektir.
+
+## Destek
+
+Herhangi bir sorunuz veya sorununuz varsa, GitHub üzerinden issue açabilir veya doğrudan iletişime geçebilirsiniz.
+
+## Lisans
+
+Bu uygulama, [Furkan Beydemir](https://github.com/beydemirfurkan) tarafından geliştirilmiştir.

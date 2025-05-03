@@ -23,4 +23,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     addStatusColumn: (column) => ipcRenderer.invoke('add-status-column', column),
     updateStatusColumn: (id, updates) => ipcRenderer.invoke('update-status-column', { id, updates }),
     deleteStatusColumn: (id) => ipcRenderer.invoke('delete-status-column', id),
+
+    // App update related methods
+    checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+    getAppVersion: () => ipcRenderer.invoke('get-app-version'),
 });

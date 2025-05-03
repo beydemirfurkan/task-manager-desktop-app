@@ -1,7 +1,8 @@
 // electron/main.cjs
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const Store = require('electron-store');
+const { autoUpdater } = require('electron-updater');
 
 // Initialize the electron-store for tasks and trash
 const taskStore = new Store({ name: 'tasks' });
@@ -42,6 +43,23 @@ function createWindow() {
 // and is ready to create browser windows
 app.whenReady().then(() => {
     createWindow();
+
+    // Check for updates after startup (except in development)
+    if (process.env.NODE_ENV !== 'development') {
+        autoUpdater.checkForUpdatesAndNotify();
+    }
+
+    // App update related handlers
+    ipcMain.handle('check-for-updates', () => {
+        if (process.env.NODE_ENV !== 'development') {
+            autoUpdater.checkForUpdatesAndNotify();
+        }
+        return true;
+    });
+
+    ipcMain.handle('get-app-version', () => {
+        return app.getVersion();
+    });
 
     // Set up IPC handlers for task management
     ipcMain.handle('get-tasks', () => {
@@ -138,6 +156,31 @@ app.whenReady().then(() => {
         // dock icon is clicked and there are no other windows open
         if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
+});
+
+// Auto-updater events
+autoUpdater.on('update-available', () => {
+    dialog.showMessageBox({
+        type: 'info',
+        title: 'Güncelleme Mevcut',
+        message: 'Yeni bir güncelleme mevcut. İndiriliyor...',
+        buttons: ['Tamam']
+    });
+});
+
+autoUpdater.on('update-downloaded', () => {
+    dialog.showMessageBox({
+        type: 'info',
+        title: 'Güncelleme Hazır',
+        message: 'Güncelleme indirildi. Şimdi yeniden başlatılacak.',
+        buttons: ['Şimdi Yeniden Başlat']
+    }).then(() => {
+        autoUpdater.quitAndInstall();
+    });
+});
+
+autoUpdater.on('error', (err) => {
+    dialog.showErrorBox('Güncelleme Hatası', `Güncelleme sırasında hata oluştu: ${err.toString()}`);
 });
 
 // Quit when all windows are closed, except on macOS
