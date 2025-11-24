@@ -1,7 +1,3 @@
-# Etsy Task Manager
-
-Etsy satıcıları için geliştirilmiş bir görev yönetim uygulaması. Bu uygulama ile Etsy mağazanız için görevlerinizi organize edebilir, takip edebilir ve verimli bir şekilde yönetebilirsiniz.
-
 ## Özellikler
 
 - Görevleri sürükle-bırak ile düzenleme
